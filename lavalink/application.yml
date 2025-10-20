@@ -4,19 +4,14 @@ server:
 
 lavalink:
   server:
-    password: "changeme"
+    password: ${LAVALINK_SERVER_PASSWORD:-changeme}
     sources:
-      youtube: false   # ← desactiva el source viejo (obligatorio)
-
-  plugins:
-    # Usa la versión más reciente del plugin (a 2025-10-11 es 1.15.0)
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.15.0"
-      snapshot: false
+      youtube: false        # desactiva fuente vieja
+      bandcamp: true
+      soundcloud: true
+      http: true
+      local: false
 
 plugins:
-  youtube:
-    enabled: true
-    allowSearch: true   # habilita ytsearch:/ytmsearch:
-    allowDirectVideoIds: true
-    allowDirectPlaylistIds: true
-
+  - dependency: "dev.lavalink.youtube:youtube-plugin:1.15.0"
+    repository: "https://maven.lavalink.dev/releases"

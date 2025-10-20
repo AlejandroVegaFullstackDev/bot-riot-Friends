@@ -1,0 +1,18 @@
+services:
+  lavalink:
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      - ./lavalink/plugins:/opt/Lavalink/plugins:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H 'Authorization: ${LAVALINK_PASSWORD:-changeme}' http://localhost:2333/v4/info >/dev/null || curl -fsS -H 'Authorization: ${LAVALINK_PASSWORD:-changeme}' http://localhost:2333/version >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  bot:
+    user: "1000:1000"
+    volumes:
+      - ./icon_roles.json:/app/icon_roles.json:rw
+      - ./data:/app/data:rw
+      - ./.last_command_sync:/app/.last_command_sync:rw

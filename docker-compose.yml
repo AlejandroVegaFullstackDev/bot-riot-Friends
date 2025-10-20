@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4
@@ -7,45 +5,52 @@ services:
     environment:
       - _JAVA_OPTIONS=-Xmx1G
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-changeme}
+    # Monta el application.yml dentro del contenedor
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
     ports:
       - "2333:2333"
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:2333/v4/info"]
-      interval: 30s
+      # prueba v4/info (si falla, intenta /version)
+      test: ["CMD-SHELL", "curl -fsS -H 'Authorization: ${LAVALINK_PASSWORD:-changeme}' http://localhost:2333/v4/info >/dev/null || curl -fsS -H 'Authorization: ${LAVALINK_PASSWORD:-changeme}' http://localhost:2333/version >/dev/null"]
+      interval: 15s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
     container_name: hydra-ollama
     ports:
       - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_KEEP_ALIVE=5m
     volumes:
       - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
     restart: unless-stopped
     command: ["serve"]
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 5s
-      retries: 20
 
   bot:
     build: .
     container_name: hydra-bot
-    env_file: .env        # (crea este archivo con tus secretos)
+    env_file: .env
     environment:
-      # Rutas internas en red docker
       - LAVALINK_URI=http://lavalink:2333
       - AI_ENDPOINT=http://ollama:11434
-      # Fallback por si no están en .env:
       - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-changeme}
       - AI_MODEL=${AI_MODEL:-llama3.2:3b}
     volumes:
       - ./data:/app/data
       - ./icon_roles.json:/app/icon_roles.json
-      - ./lavalink:/app/lavalink          # si lees application.yml desde el bot
+      - ./lavalink:/app/lavalink
     depends_on:
       lavalink:
         condition: service_healthy
