@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
+*.env
+
+# Local configuration / state
+.discord-cache/
+.last_command_sync
+
+# Data files generated at runtime
+*.log
+*.sqlite3
+*.db
+.data/
+data/personal_channels.json
+data/tempvoice.json
+
+# IDE / editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

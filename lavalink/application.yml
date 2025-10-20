@@ -1,0 +1,22 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  server:
+    password: "changeme"
+    sources:
+      youtube: false   # ← desactiva el source viejo (obligatorio)
+
+  plugins:
+    # Usa la versión más reciente del plugin (a 2025-10-11 es 1.15.0)
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.15.0"
+      snapshot: false
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true   # habilita ytsearch:/ytmsearch:
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+

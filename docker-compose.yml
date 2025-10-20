@@ -1,0 +1,14 @@
+services:
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: hydra-bot-discord-lavalink-1
+    ports:
+      - "2333:2333"
+    environment:
+      - _JAVA_OPTIONS=-Xmx1G
+      - SERVER_PORT=2333            
+      - LAVALINK_SERVER_PASSWORD=changeme
+      - LAVALINK_SERVER_SOURCES_YOUTUBE=false
+      - LAVALINK_PLUGINS_0_DEPENDENCY=dev.lavalink.youtube:youtube-plugin:1.15.0
+      - LAVALINK_PLUGINS_0_SNAPSHOT=false
+    restart: unless-stopped
