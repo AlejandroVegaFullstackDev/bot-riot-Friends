@@ -127,7 +127,27 @@ class MusicSlash(commands.Cog):
         await inter.response.defer(ephemeral=True)
         player = await self._ensure_player(inter)
 
-        tracks = await wavelink.Playable.search(query)
+        # Forzar búsqueda en YouTube normal (no YouTube Music) para evitar problemas de autenticación
+        original_query = query.strip()
+        search_query = original_query
+
+        # Si no es URL, usar búsqueda en YouTube (no YT Music)
+        if not search_query.startswith(("http://", "https://")):
+            search_query = f"ytsearch:{search_query}"
+
+        # Intentar buscar con YouTube normal (videos, no requiere login)
+        try:
+            tracks = await wavelink.YouTubeTrack.search(search_query)
+        except Exception:
+            tracks = None
+
+        # Fallback a YouTube Music solo si no hay resultados
+        if not tracks:
+            try:
+                tracks = await wavelink.YouTubeMusicTrack.search(f"ytmsearch:{original_query}")
+            except Exception:
+                tracks = None
+
         if not tracks:
             return await inter.followup.send("❌ No encontré resultados.", ephemeral=True)
 
