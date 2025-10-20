@@ -1,14 +1,57 @@
+version: "3.8"
+
 services:
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4
-    container_name: hydra-bot-discord-lavalink-1
-    ports:
-      - "2333:2333"
+    container_name: hydra-lavalink
     environment:
       - _JAVA_OPTIONS=-Xmx1G
-      - SERVER_PORT=2333            
-      - LAVALINK_SERVER_PASSWORD=changeme
-      - LAVALINK_SERVER_SOURCES_YOUTUBE=false
-      - LAVALINK_PLUGINS_0_DEPENDENCY=dev.lavalink.youtube:youtube-plugin:1.15.0
-      - LAVALINK_PLUGINS_0_SNAPSHOT=false
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-changeme}
+    ports:
+      - "2333:2333"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:2333/v4/info"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hydra-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    command: ["serve"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 5s
+      retries: 20
+
+  bot:
+    build: .
+    container_name: hydra-bot
+    env_file: .env        # (crea este archivo con tus secretos)
+    environment:
+      # Rutas internas en red docker
+      - LAVALINK_URI=http://lavalink:2333
+      - AI_ENDPOINT=http://ollama:11434
+      # Fallback por si no están en .env:
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-changeme}
+      - AI_MODEL=${AI_MODEL:-llama3.2:3b}
+    volumes:
+      - ./data:/app/data
+      - ./icon_roles.json:/app/icon_roles.json
+      - ./lavalink:/app/lavalink          # si lees application.yml desde el bot
+    depends_on:
+      lavalink:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama:

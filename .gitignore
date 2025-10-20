@@ -34,3 +34,5 @@ data/tempvoice.json
 # OS files
 .DS_Store
 Thumbs.db
+.DsBot.pem
+DsBot.pem

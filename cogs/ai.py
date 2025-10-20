@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 
 AI_MODEL = os.getenv("AI_MODEL", "llama3.2:3b")
+AI_ENDPOINT = os.getenv("AI_ENDPOINT", "http://127.0.0.1:11434")
 AI_CHANNEL_ID = int(os.getenv("AI_CHANNEL_ID", "0"))
 AI_TRIGGER = os.getenv("AI_TRIGGER", "?")
 ONLY_MENTION = os.getenv("AI_ONLY_MENTION", "1") == "1"
@@ -43,7 +44,7 @@ Notas
 )
 
 async def call_ollama(prompt: str) -> str:
-    url = "http://127.0.0.1:11434/api/generate"
+    url = f"{AI_ENDPOINT}/api/generate"
     payload = {
         "model": AI_MODEL,
         "prompt": f"{SYSTEM_PROMPT}\n\nUsuario: {prompt}\nBot:",
