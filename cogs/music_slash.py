@@ -73,7 +73,7 @@ class MusicSlash(commands.Cog):
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
         player: wavelink.Player = payload.player
         queue = getattr(player, "queue", None)
-        if queue and hasattr(queue, "get") and not getattr(queue, "is_empty", lambda: len(queue) == 0)():
+        if queue and len(queue) > 0:
             try:
                 next_track = queue.get()
                 await player.play(next_track)
@@ -81,26 +81,32 @@ class MusicSlash(commands.Cog):
                 pass
 
     async def _ensure_player(self, inter: discord.Interaction) -> wavelink.Player:
+        # Reutilizar player existente si ya está conectado
         voice_client = inter.guild.voice_client  # type: ignore
         if voice_client and isinstance(voice_client, wavelink.Player):
             player: wavelink.Player = voice_client
-        else:
-            channel = inter.user.voice.channel  # type: ignore
-            player = await channel.connect(cls=wavelink.Player)
-            if isinstance(channel, discord.StageChannel):
-                try:
-                    await channel.guild.change_voice_state(
-                        channel=channel,
-                        self_mute=False,
-                        self_deaf=False,
-                        suppress=False,
-                    )
-                except Exception:
-                    pass
+            # Asegurar que tenga cola inicializada
+            if not hasattr(player, "queue") or player.queue is None:
+                player.queue = wavelink.Queue()
+            return player
+
+        # Solo crear nuevo player si no existe
+        channel = inter.user.voice.channel  # type: ignore
+        player = await channel.connect(cls=wavelink.Player)
+        if isinstance(channel, discord.StageChannel):
             try:
-                await player.set_volume(30)
+                await channel.guild.change_voice_state(
+                    channel=channel,
+                    self_mute=False,
+                    self_deaf=False,
+                    suppress=False,
+                )
             except Exception:
                 pass
+        try:
+            await player.set_volume(30)
+        except Exception:
+            pass
         if not hasattr(player, "queue") or player.queue is None:
             player.queue = wavelink.Queue()
         return player
@@ -134,7 +140,15 @@ class MusicSlash(commands.Cog):
                 for track in tracks:
                     await queue.put_wait(track)
                     added += 1
-            if not player.playing and queue and queue:
+
+            # Verificar si está ocupado
+            is_busy = False
+            try:
+                is_busy = (player.current is not None) or getattr(player, "playing", False) or player.paused
+            except Exception:
+                pass
+
+            if not is_busy and queue and len(queue) > 0:
                 next_track = queue.get()
                 await player.play(next_track)
                 response = f"▶️ Reproduciendo: **{getattr(next_track, 'title', str(next_track))}**"
@@ -142,10 +156,20 @@ class MusicSlash(commands.Cog):
                 response = f"📃 Playlist **{tracks.name}** añadida ({added} temas)."
         else:
             track = tracks[0]
-            if player.playing and queue:
+
+            # CONDICIÓN ROBUSTA para decidir si encolamos
+            is_busy = False
+            try:
+                is_busy = (player.current is not None) or getattr(player, "playing", False) or player.paused
+            except Exception:
+                pass
+
+            if is_busy or (queue and len(queue) > 0):
+                # Hay algo sonando o hay cola -> ENCOLAR
                 await queue.put_wait(track)
-                response = f"➕ En cola: **{track.title}**"
+                response = f"➕ En cola: **{track.title}** (`{len(queue)}` en cola)"
             else:
+                # No hay nada -> REPRODUCIR DIRECTAMENTE
                 await player.play(track)
                 response = f"▶️ Reproduciendo: **{track.title}**"
 
